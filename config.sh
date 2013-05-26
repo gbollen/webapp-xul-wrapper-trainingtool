@@ -1,7 +1,8 @@
 # Whether to build for various platforms
-BUILD_MAC=1
-BUILD_WIN32=1
-BUILD_LINUX=1
+BUILD_MAC=0
+BUILD_WIN32=0
+BUILD_LINUX32=0
+BUILD_LINUX64=0
 
 # Whether or not to bundle plugins (in the plugins/*/ folders) with the distribution packages
 BUNDLE_PLUGINS=0
@@ -16,7 +17,7 @@ LINUX_i686_RUNTIME_PATH="`pwd`/xulrunner/xulrunner_linux-i686"
 LINUX_x86_64_RUNTIME_PATH="`pwd`/xulrunner/xulrunner_linux-x86_64"
 
 # Whether to sign builds
-SIGN=1
+SIGN=0
 
 # OS X Developer ID certificate information
 DEVELOPER_ID=replacemereplacemereplacemereplacemerepl
@@ -32,26 +33,24 @@ SIGNTOOL='C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Bin\signtool.exe'
 SIGNATURE_URL='https://www.example.com/'
 
 # If version is not specified on the command line, version is this prefix followed by the revision
-DEFAULT_VERSION_PREFIX="0.0.0.SOURCE."
+DEFAULT_VERSION_PREFIX="3.1.SOURCE."
 # Numeric version for OS X bundle
-VERSION_NUMERIC="0.0.0"
+VERSION_NUMERIC="3.1"
 
 # Directory for building
 BUILDDIR="/tmp/app-build-`uuidgen | head -c 8`"
-# Module to use as XUL app for build
+# Module to build
 MODULE="app"
 # Module containing webapp to wrap
-WEBAPPMODULE="kitchensink/app/"
-# Directory containing privileged scripts to be copied to the application's chrome contents
-BRIDGESCRIPTS="kitchensink/bridge/"
+WEBAPPMODULE="code"
 # Directory for unpacked binaries
 STAGEDIR="$CALLDIR/staging"
 # Directory for packed binaries
 DISTDIR="$CALLDIR/dist"
 
 # App name
-APPNAME="Webapp XUL Wrapper"
-PACKAGENAME="webapp-xul-wrapper"
+APPNAME="SaltOS"
+PACKAGENAME="SaltOS"
 
 # Packages url (used for update packaging)
 PACKAGESURL="http://www.example.com/app/packages"

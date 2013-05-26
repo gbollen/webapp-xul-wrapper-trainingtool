@@ -1,5 +1,5 @@
-﻿<!ENTITY  brandShortName        "Webapp XUL Wrapper">
-<!ENTITY  brandFullName         "Webapp XUL Wrapper">
-<!ENTITY  vendorUrl             "http://www.example.com">
-<!ENTITY  vendorShortName       "Webapp XUL Wrapper Contributors">
-<!ENTITY  logoCopyright         "©2012 Webapp XUL Wrapper Contributors. All rights reserved.">
+﻿<!ENTITY  brandShortName        "SaltOS">
+<!ENTITY  brandFullName         "SaltOS">
+<!ENTITY  vendorUrl             "http://www.saltos.net">
+<!ENTITY  vendorShortName       "SaltOS Contributors">
+<!ENTITY  logoCopyright         "Copyright (C) 2013 by Josep Sanz Campderrós">

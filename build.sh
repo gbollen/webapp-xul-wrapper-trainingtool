@@ -5,17 +5,17 @@
 #                     Center for History and New Media
 #                     George Mason University, Fairfax, Virginia, USA
 #                     http://zotero.org
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -31,7 +31,7 @@ function usage {
 	cat >&2 <<DONE
 Usage: $0 [-p PLATFORMS] [-s DIR] [-v VERSION] [-c CHANNEL] [-d]
 Options
- -p PLATFORMS        build for platforms PLATFORMS (m=Mac, w=Windows, l=Linux)
+ -p PLATFORMS        build for platforms PLATFORMS (m=Mac, w=Windows, l=Linux, x=linux64)
  -v VERSION          use version VERSION
  -c CHANNEL          use update channel CHANNEL
  -d                  don't package; only build binaries in staging/ directory
@@ -45,13 +45,15 @@ while getopts "p:s:v:c:d" opt; do
 		p)
 			BUILD_MAC=0
 			BUILD_WIN32=0
-			BUILD_LINUX=0
+			BUILD_LINUX32=0
+			BUILD_LINUX64=0
 			for i in `seq 0 1 $((${#OPTARG}-1))`
 			do
 				case ${OPTARG:i:1} in
 					m) BUILD_MAC=1;;
 					w) BUILD_WIN32=1;;
-					l) BUILD_LINUX=1;;
+					l) BUILD_LINUX32=1;;
+					x) BUILD_LINUX64=1;;
 					*)
 						echo "$0: Invalid platform option ${OPTARG:i:1}"
 						usage
@@ -103,7 +105,7 @@ if [ -z "$UPDATE_CHANNEL" ]; then UPDATE_CHANNEL="default"; fi
 	if [ -z "$VERSION" ]; then
 		VERSION="$DEFAULT_VERSION_PREFIX$REV"
 	fi
-	
+
 	# Append version directory to DISTDIR
 	DISTDIR="$DISTDIR/$VERSION"
 
@@ -112,17 +114,11 @@ if [ -z "$UPDATE_CHANNEL" ]; then UPDATE_CHANNEL="default"; fi
 
 	# Copy branding
 	cp -R "$CALLDIR/assets/branding" "$BUILDDIR/$MODULE/chrome/branding"
-	
-	# Copy bridge scripts
-	if [ -d "$CALLDIR/modules/$BRIDGESCRIPTS" ]; then
-		if [ ! -d "$BUILDDIR/$MODULE/chrome/content/app/bridge" ]; then mkdir -p "$BUILDDIR/$MODULE/chrome/content/app/bridge"; fi
-		cp -R "$CALLDIR/modules/$BRIDGESCRIPTS" "$BUILDDIR/$MODULE/chrome/content/app/bridge";
-	fi
 
 	# Delete files that shouldn't be distributed
 	find "$BUILDDIR/$MODULE" -depth -type d -name .git -exec rm -rf {} \;
 	find "$BUILDDIR/$MODULE" -name .DS_Store -exec rm -f {} \;
-	
+
 	# Zip chrome into JAR
 	cd "$BUILDDIR/$MODULE/chrome"
 	# Checkout failed -- bail
@@ -133,14 +129,14 @@ if [ -z "$UPDATE_CHANNEL" ]; then UPDATE_CHANNEL="default"; fi
 	rm -rf "$BUILDDIR/$MODULE/chrome/"*
 	mv ../$MODULE.jar .
 	cd ..
-		
+
 	# Adjust chrome.manifest
 	echo "" >> "$BUILDDIR/$MODULE/chrome.manifest"
 	cat "$CALLDIR/assets/chrome.manifest" >> "$BUILDDIR/$MODULE/chrome.manifest"
-	
+
 	# Copy updater.ini
 	cp "$CALLDIR/assets/updater.ini" "$BUILDDIR/$MODULE"
-	
+
 	perl -pi -e 's/chrome\//jar:chrome\/'$MODULE'.jar\!\//g' "$BUILDDIR/$MODULE/chrome.manifest"
 
 # Copy icons
@@ -168,7 +164,7 @@ cd "$CALLDIR"
 # Mac
 if [ $BUILD_MAC == 1 ]; then
 	echo "Building $APPNAME.app"
-		
+
 	# Set up directory structure
 	APPDIR="$STAGEDIR/$APPNAME.app"
 	rm -rf "$APPDIR"
@@ -176,7 +172,7 @@ if [ $BUILD_MAC == 1 ]; then
 	chmod 755 "$APPDIR"
 	cp -r "$CALLDIR/mac/Contents" "$APPDIR"
 	CONTENTSDIR="$APPDIR/Contents"
-	
+
 	# Merge xulrunner and relevant assets
 	mkdir "$CONTENTSDIR/MacOS"
 	mkdir "$CONTENTSDIR/Resources"
@@ -190,7 +186,7 @@ if [ $BUILD_MAC == 1 ]; then
 	cp "$BUILDDIR/application.ini" "$CONTENTSDIR/Resources/"
 	cp "$CALLDIR/mac/Contents/Info.plist" "$CONTENTSDIR"
 	cp "$CALLDIR/assets/icons/default/default.icns" "$CONTENTSDIR/Resources/$MODULE.icns"
-	
+
 	# Copy plugins
 	if [ $BUNDLE_PLUGINS == 1 ]; then
 		mkdir -p "$CONTENTSDIR/Resources/plugins/"
@@ -201,28 +197,32 @@ if [ $BUILD_MAC == 1 ]; then
 	cp "$CALLDIR/mac/Contents/Info.plist" "$CONTENTSDIR/Info.plist"
 	perl -pi -e "s/{{VERSION}}/$VERSION/" "$CONTENTSDIR/Info.plist"
 	perl -pi -e "s/{{VERSION_NUMERIC}}/$VERSION_NUMERIC/" "$CONTENTSDIR/Info.plist"
-	# Needed for "monkeypatch" Windows builds: 
+	# Needed for "monkeypatch" Windows builds:
 	# http://www.nntp.perl.org/group/perl.perl5.porters/2010/08/msg162834.html
 	rm -f "$CONTENTSDIR/Info.plist.bak"
-	
+
 	# Add components
 	cp -R "$BUILDDIR/$MODULE/"* "$CONTENTSDIR/Resources"
-	
+
 	# Add Mac-specific Standalone assets
 	cd "$CALLDIR/assets/mac"
 	zip -0 -r -q "$CONTENTSDIR/Resources/chrome/$MODULE.jar" *
-	
+
 	# Delete extraneous files
 	find "$CONTENTSDIR" -depth -type d -name .git -exec rm -rf {} \;
 	find "$CONTENTSDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
-	
+
+	# By sanz
+	cp -r "$CALLDIR/php/mac/php" "$CONTENTSDIR/php"
+	cp "$CALLDIR/php/mac/sanz.txt" "$CONTENTSDIR/sanz.txt"
+
 	# Sign
 	if [ $SIGN == 1 ]; then
 		/usr/bin/codesign --force --sign "$DEVELOPER_ID" \
 			--requirements "$CODESIGN_REQUIREMENTS" \
 			"$APPDIR"
 	fi
-	
+
 	# Build disk image
 	if [ $PACKAGE == 1 ]; then
 		if [ $MAC_NATIVE == 1 ]; then
@@ -243,12 +243,12 @@ fi
 # Win32
 if [ $BUILD_WIN32 == 1 ]; then
 	echo "Building ${PACKAGENAME}-win32"
-	
+
 	# Set up directory
 	APPDIR="$STAGEDIR/${PACKAGENAME}-win32"
 	rm -rf "$APPDIR"
 	mkdir "$APPDIR"
-	
+
 	# Copy plugins
 	if [ $BUNDLE_PLUGINS == 1 ]; then
 		mkdir -p "$APPDIR/plugins"
@@ -258,42 +258,48 @@ if [ $BUILD_WIN32 == 1 ]; then
 	# Merge xulrunner and relevant assets
 	cp -R "$BUILDDIR/$MODULE/"* "$BUILDDIR/application.ini" "$APPDIR"
 	cp -r "$WIN32_RUNTIME_PATH" "$APPDIR/xulrunner"
-	
-	mv "$APPDIR/xulrunner/xulrunner-stub.exe" "$APPDIR/${APPNAME}.exe"
-	
+
+	mv "$APPDIR/xulrunner/xulrunner-stub.exe" "$APPDIR/app-bin.exe"
+
 	# This used to be bug 722810, but that bug was actually fixed for Gecko 12. Now it's
 	# unfortunately broken again.
 	cp "$WIN32_RUNTIME_PATH/msvcp100.dll" \
 	   "$WIN32_RUNTIME_PATH/msvcr100.dll" \
 	   "$APPDIR/"
-	
+
 	# Add Windows-specific Standalone assets
 	cd "$CALLDIR/assets/win"
 	zip -0 -r -q "$APPDIR/chrome/$MODULE.jar" *
-	
+
 	# Delete extraneous files
 	rm "$APPDIR/xulrunner/js.exe" "$APPDIR/xulrunner/redit.exe"
 	find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
 	find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
 	find "$APPDIR" \( -name '*.exe' -or -name '*.dll' \) -exec chmod 755 {} \;
-	
+
+	# By sanz
+	cp "$CALLDIR/win/$MODULE.bat" "$APPDIR/${APPNAME}.bat"
+	cp "$CALLDIR/win/$MODULE.vbs" "$APPDIR/${APPNAME}.vbs"
+	cp -r "$CALLDIR/php/win32/php" "$APPDIR/php"
+	cp "$CALLDIR/php/win32/sanz.txt" "$APPDIR/sanz.txt"
+
 	if [ $PACKAGE == 1 ]; then
 		if [ $WIN_NATIVE == 1 ]; then
 			INSTALLER_PATH="$DISTDIR/${PACKAGENAME}-${VERSION}-setup.exe"
-			
+
 			# Add icon to xulrunner-stub
 			"$CALLDIR/win/ReplaceVistaIcon/ReplaceVistaIcon.exe" "`cygpath -w \"$APPDIR/${APPNAME}.exe\"`" \
 				"`cygpath -w \"$CALLDIR/assets/icons/default/main-window.ico\"`"
-			
+
 			echo 'Creating Windows installer'
 			# Copy installer files
 			cp -r "$CALLDIR/win/installer" "$BUILDDIR/win_installer"
-			
+
 			# Build and sign uninstaller
 			"`cygpath -u \"$MAKENSISU\"`" /V1 "`cygpath -w \"$BUILDDIR/win_installer/uninstaller.nsi\"`"
 			mkdir "$APPDIR/uninstall"
 			mv "$BUILDDIR/win_installer/helper.exe" "$APPDIR/uninstall"
-			
+
 			# Sign $MODULE.exe, updater, and uninstaller
 			if [ $SIGN == 1 ]; then
 				"`cygpath -u \"$SIGNTOOL\"`" sign /a /d "$APPNAME" \
@@ -303,12 +309,12 @@ if [ $BUILD_WIN32 == 1 ]; then
 				"`cygpath -u \"$SIGNTOOL\"`" sign /a /d "$APPNAME Uninstaller" \
 					/du "$SIGNATURE_URL" "`cygpath -w \"$APPDIR/uninstall/helper.exe\"`"
 			fi
-			
+
 			# Stage installer
 			INSTALLERSTAGEDIR="$BUILDDIR/win_installer/staging"
 			mkdir "$INSTALLERSTAGEDIR"
 			cp -R "$APPDIR" "$INSTALLERSTAGEDIR/core"
-			
+
 			# Build and sign setup.exe
 			perl -pi -e "s/{{VERSION}}/$VERSION/" "$BUILDDIR/win_installer/defines.nsi"
 			"`cygpath -u \"$MAKENSISU\"`" /V1 "`cygpath -w \"$BUILDDIR/win_installer/installer.nsi\"`"
@@ -317,25 +323,25 @@ if [ $BUILD_WIN32 == 1 ]; then
 				"`cygpath -u \"$SIGNTOOL\"`" sign /a /d "$APPNAME Setup" \
 					/du "$SIGNATURE_URL" "`cygpath -w \"$INSTALLERSTAGEDIR/setup.exe\"`"
 			fi
-			
+
 			# Compress application
 			cd "$INSTALLERSTAGEDIR" && "`cygpath -u \"$EXE7ZIP\"`" a -r -t7z "`cygpath -w \"$BUILDDIR/app_win32.7z\"`" \
 				-mx -m0=BCJ2 -m1=LZMA:d24 -m2=LZMA:d19 -m3=LZMA:d19  -mb0:1 -mb0s1:2 -mb0s2:3 > /dev/null
-				
+
 			# Compress 7zSD.sfx
 			"`cygpath -u \"$UPX\"`" --best -o "`cygpath -w \"$BUILDDIR/7zSD.sfx\"`" \
 				"`cygpath -w \"$CALLDIR/win/installer/7zstub/firefox/7zSD.sfx\"`" > /dev/null
-			
+
 			# Combine 7zSD.sfx and app.tag into setup.exe
 			cat "$BUILDDIR/7zSD.sfx" "$CALLDIR/win/installer/app.tag" \
 				"$BUILDDIR/app_win32.7z" > "$INSTALLER_PATH"
-			
+
 			# Sign ${PACKAGENAME}_setup.exe
 			if [ $SIGN == 1 ]; then
 				"`cygpath -u \"$SIGNTOOL\"`" sign /a /d "$APPNAME Setup" \
 					/du "$SIGNATURE_URL" "`cygpath -w \"$INSTALLER_PATH\"`"
 			fi
-			
+
 			chmod 755 "$INSTALLER_PATH"
 		else
 			echo 'Not building on Windows; only building zip file'
@@ -344,50 +350,102 @@ if [ $BUILD_WIN32 == 1 ]; then
 	fi
 fi
 
-# Linux
-if [ $BUILD_LINUX == 1 ]; then
-	for arch in "i686" "x86_64"; do
-		RUNTIME_PATH=`eval echo '$LINUX_'$arch'_RUNTIME_PATH'`
-		
-		# Set up directory
-		echo "Building ${PACKAGENAME}-linux-$arch"
-		APPDIR="$STAGEDIR/${PACKAGENAME}-linux-$arch"
-		rm -rf "$APPDIR"
-		mkdir "$APPDIR"
+# Linux32
+if [ $BUILD_LINUX32 == 1 ]; then
+	arch="i686"
+	RUNTIME_PATH=`eval echo '$LINUX_'$arch'_RUNTIME_PATH'`
 
-		# Copy plugins
-		if [ $BUNDLE_PLUGINS == 1 ]; then
-			mkdir -p "$APPDIR/plugins"
-			cp -r "$CALLDIR/plugins/linux-$arch/"* "$APPDIR/plugins/"
-		fi
+	# Set up directory
+	echo "Building ${PACKAGENAME}-linux-$arch"
+	APPDIR="$STAGEDIR/${PACKAGENAME}-linux-$arch"
+	rm -rf "$APPDIR"
+	mkdir "$APPDIR"
 
-		# Merge xulrunner and relevant assets
-		cp -R "$BUILDDIR/$MODULE/"* "$BUILDDIR/application.ini" "$APPDIR"
-		cp -r "$RUNTIME_PATH" "$APPDIR/xulrunner"
-		mv "$APPDIR/xulrunner/xulrunner-stub" "$APPDIR/$MODULE"
-		chmod 755 "$APPDIR/$MODULE"
-	
-		# Add Unix-specific Standalone assets
-		cd "$CALLDIR/assets/unix"
-		zip -0 -r -q "$APPDIR/chrome/$MODULE.jar" *
-		
-		# Delete extraneous files
-		find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
-		find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
-		
-		# Add run-$MODULE.sh
-		cp "$CALLDIR/linux/run-$MODULE.sh" "$APPDIR/run-$MODULE.sh"
-		
-		# Move icons, so that updater.png doesn't fail
-		mv "$APPDIR/xulrunner/icons" "$APPDIR/icons"
-		
-		if [ $PACKAGE == 1 ]; then
-			# Create tar
-			rm -f "$DISTDIR/${PACKAGENAME}-${VERSION}-linux-$arch.tar.bz2"
-			cd "$STAGEDIR"
-			tar -cjf "$DISTDIR/${PACKAGENAME}-${VERSION}-linux-$arch.tar.bz2" "${PACKAGENAME}-linux-$arch"
-		fi
-	done
+	# Copy plugins
+	if [ $BUNDLE_PLUGINS == 1 ]; then
+		mkdir -p "$APPDIR/plugins"
+		cp -r "$CALLDIR/plugins/linux-$arch/"* "$APPDIR/plugins/"
+	fi
+
+	# Merge xulrunner and relevant assets
+	cp -R "$BUILDDIR/$MODULE/"* "$BUILDDIR/application.ini" "$APPDIR"
+	cp -r "$RUNTIME_PATH" "$APPDIR/xulrunner"
+	mv "$APPDIR/xulrunner/xulrunner-stub" "$APPDIR/$MODULE-bin"
+	chmod 755 "$APPDIR/$MODULE-bin"
+
+	# Add Unix-specific Standalone assets
+	cd "$CALLDIR/assets/unix"
+	zip -0 -r -q "$APPDIR/chrome/$MODULE.jar" *
+
+	# Delete extraneous files
+	find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
+	find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
+
+	# Add run-$MODULE.sh
+	cp "$CALLDIR/linux/run-$MODULE.sh" "$APPDIR/${APPNAME}.sh"
+
+	# Move icons, so that updater.png doesn't fail
+	mv "$APPDIR/xulrunner/icons" "$APPDIR/icons"
+
+	# By sanz
+	cp -r "$CALLDIR/php/linux-$arch/php" "$APPDIR/php"
+	cp "$CALLDIR/php/linux-$arch/sanz.txt" "$APPDIR/sanz.txt"
+
+	if [ $PACKAGE == 1 ]; then
+		# Create tar
+		rm -f "$DISTDIR/${PACKAGENAME}-${VERSION}-linux-$arch.tgz"
+		cd "$STAGEDIR"
+		tar -czf "$DISTDIR/${PACKAGENAME}-${VERSION}-linux-$arch.tgz" "${PACKAGENAME}-linux-$arch"
+	fi
+fi
+
+# Linux64
+if [ $BUILD_LINUX64 == 1 ]; then
+	arch="x86_64"
+	RUNTIME_PATH=`eval echo '$LINUX_'$arch'_RUNTIME_PATH'`
+
+	# Set up directory
+	echo "Building ${PACKAGENAME}-linux-$arch"
+	APPDIR="$STAGEDIR/${PACKAGENAME}-linux-$arch"
+	rm -rf "$APPDIR"
+	mkdir "$APPDIR"
+
+	# Copy plugins
+	if [ $BUNDLE_PLUGINS == 1 ]; then
+		mkdir -p "$APPDIR/plugins"
+		cp -r "$CALLDIR/plugins/linux-$arch/"* "$APPDIR/plugins/"
+	fi
+
+	# Merge xulrunner and relevant assets
+	cp -R "$BUILDDIR/$MODULE/"* "$BUILDDIR/application.ini" "$APPDIR"
+	cp -r "$RUNTIME_PATH" "$APPDIR/xulrunner"
+	mv "$APPDIR/xulrunner/xulrunner-stub" "$APPDIR/$MODULE-bin"
+	chmod 755 "$APPDIR/$MODULE-bin"
+
+	# Add Unix-specific Standalone assets
+	cd "$CALLDIR/assets/unix"
+	zip -0 -r -q "$APPDIR/chrome/$MODULE.jar" *
+
+	# Delete extraneous files
+	find "$APPDIR" -depth -type d -name .git -exec rm -rf {} \;
+	find "$APPDIR" \( -name .DS_Store -or -name update.rdf \) -exec rm -f {} \;
+
+	# Add run-$MODULE.sh
+	cp "$CALLDIR/linux/run-$MODULE.sh" "$APPDIR/${APPNAME}.sh"
+
+	# Move icons, so that updater.png doesn't fail
+	mv "$APPDIR/xulrunner/icons" "$APPDIR/icons"
+
+	# By sanz
+	cp -r "$CALLDIR/php/linux-$arch/php" "$APPDIR/php"
+	cp "$CALLDIR/php/linux-$arch/sanz.txt" "$APPDIR/sanz.txt"
+
+	if [ $PACKAGE == 1 ]; then
+		# Create tar
+		rm -f "$DISTDIR/${PACKAGENAME}-${VERSION}-linux-$arch.tgz"
+		cd "$STAGEDIR"
+		tar -czf "$DISTDIR/${PACKAGENAME}-${VERSION}-linux-$arch.tgz" "${PACKAGENAME}-linux-$arch"
+	fi
 fi
 
 rm -rf $BUILDDIR

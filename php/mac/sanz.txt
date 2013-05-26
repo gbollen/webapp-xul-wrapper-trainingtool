@@ -1,0 +1,5 @@
+
+This package contains:
+- SaltOS => http://download.saltos.net
+- Webapp-xul-wrapper: https://github.com/neam/webapp-xul-wrapper
+- PHP 5.4.13 => http://php-osx.liip.ch/
