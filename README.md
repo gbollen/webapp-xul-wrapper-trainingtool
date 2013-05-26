@@ -29,13 +29,7 @@ For a more in-depth overview of current Standalone Web App Cross-Platform Deskto
 Get started
 -----------------------------
 Instructions for building and packaging are mostly the same as for Zotero Standalone and are available on the [Zotero wiki](http://www.zotero.org/support/dev/client_coding/building_the_standalone_client).
-It is recommended that you follow those in order to build a standalone version of the Kitchen Sink webapp that is bundled with the project:
-
-![Screenshot of the Kitchen Sink](https://raw.github.com/neam/webapp-xul-wrapper-kitchensink/develop/misc/screen.png "Screenshot of the Kitchen Sink")
-
-If your system is properly configured and you are using OSX, you should be able to get the Kitchen Sink running as per above by executing:
-
-     ./run-kitchensink.sh
+It is recommended that you follow those in order to build a standalone version of the sample webapp that is bundled with the project.
 
 When that is working for you, you can package your own webapp:
 
@@ -45,21 +39,17 @@ When that is working for you, you can package your own webapp:
 4. If necessary, update the url for the browser tag in modules/app/chrome/content/app/ui/main.xul
 5. Customize branding and metadata to your liking
 
-The Kitchen Sink acts as a reference implementation for how to send messages between the webapp and the wrapper XUL application. (Hint: Check the scripts under the folder indicated by the BRIDGESCRIPTS variable in config.sh)
-
 Tips
 -----------------------------
 ### Debugging the XUL application
-Check out [the official docs](https://developer.mozilla.org/en/docs/Debugging_a_XULRunner_Application), stackoverflow etc. On OSX, parameters to xulrunner (such as -jsconsole -P -purgecache etc) can be appended to the Contents/MacOS/app script, as such:
+Check out [the official docs](https://developer.mozilla.org/en/docs/Debugging_a_XULRunner_Application), stackoverflow etc. On OSX, parameters to xulrunner (such as -jsconsole -P etc) can be appended to the Contents/MacOS/app script, as such:
 
-     Contents/MacOS/app -P -jsconsole -purgecache
+     Contents/MacOS/app -P -jsconsole
 
 On Windows, create a shortcut to app.exe and add the parameters in that shortcut's properties.
 
-Zotero has some [relevant documentation](http://www.zotero.org/support/dev/client_coding/javascript_api) on how to set up a debug environment.
-
 ### Debugging your webapp
-This is best done in some other browser, since the browser-view included in the app doesn't offer much development aid. While the standalone app is running, you can access the bundled webapp on [http://localhost:57187](http://localhost:57187).
+This is best done in some other browser, since the browser-view included in the app doesn't offer much development aid. While the standalone app is running, you can access the bundled webapp on (http://localhost:57187)[http://localhost:57187].
 
 ### Debugging the build scripts
 Add `set -x` near the top of config.sh before building to see everything that the build process does.
@@ -98,12 +88,6 @@ This will produce the relevant application update packages for Mac, Linux and Wi
 
 Changelog
 -----------------------------
-
-1.2.0 (2013-05-24)
-
- - Kitchen Sink sample app (default build target) to demonstrate some of Webapp XUL Wrapper's features
- - Messaging between webapp and XUL application
- - Native notifications
 
 1.1.0 (2013-01-11)
 
