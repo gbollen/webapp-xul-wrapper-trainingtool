@@ -2,4 +2,4 @@
 This package contains:
 - SaltOS => http://download.saltos.net
 - Webapp-xul-wrapper: https://github.com/neam/webapp-xul-wrapper
-- PHP 5.4.13 => http://www.centos.org/
+- PHP 5.4.15 => http://www.centos.org/ & http://blog.famillecollet.com/
